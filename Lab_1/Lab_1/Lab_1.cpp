@@ -2,7 +2,7 @@
 #include <tchar.h>
 
 LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);
-TCHAR WinName[] = _T("Main window");
+TCHAR WinName[] = _T("Lab_1");
 
 int APIENTRY _tWinMain(HINSTANCE This, HINSTANCE Prev, LPTSTR cmd, int mode) 
 {
@@ -21,14 +21,14 @@ int APIENTRY _tWinMain(HINSTANCE This, HINSTANCE Prev, LPTSTR cmd, int mode)
 	wc.cbWndExtra = 0;                           // No extra window info.
 
 	// Fill window with white color.
-	wc.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
+	wc.hbrBackground = (HBRUSH)(WHITE_BRUSH);
 
 	// Class registration
 	if (!RegisterClass(&wc))
 		return 0;
 
 	hWnd = CreateWindow(WinName,  // Window name.
-		_T("Window"),             // Window title.
+		_T("Lab_1"),              // Window title.
 		WS_OVERLAPPEDWINDOW,      // Window style.
 		CW_USEDEFAULT,            // X.
 		CW_USEDEFAULT,            // Y.
