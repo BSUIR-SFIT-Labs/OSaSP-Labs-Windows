@@ -1,8 +1,16 @@
 #include <Windows.h>
 #include <tchar.h>
+#include <xstring>
+
+#include "resource.h";
+
+typedef std::basic_string<TCHAR, std::char_traits<TCHAR>,
+	std::allocator<TCHAR> > String;
 
 LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);
+
 TCHAR WinName[] = _T("Lab_1");
+HINSTANCE hInst;
 
 int APIENTRY _tWinMain(HINSTANCE This, HINSTANCE Prev, LPTSTR cmd, int mode) 
 {
@@ -21,7 +29,9 @@ int APIENTRY _tWinMain(HINSTANCE This, HINSTANCE Prev, LPTSTR cmd, int mode)
 	wc.cbWndExtra = 0;                           // No extra window info.
 
 	// Fill window with white color.
-	wc.hbrBackground = (HBRUSH)(WHITE_BRUSH);
+	wc.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
+
+	hInst = This;
 
 	// Class registration
 	if (!RegisterClass(&wc))
@@ -54,8 +64,28 @@ int APIENTRY _tWinMain(HINSTANCE This, HINSTANCE Prev, LPTSTR cmd, int mode)
 // receives messages from the queue for this application.
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
+	PAINTSTRUCT ps;
+	HDC hdc;
+	HBITMAP hBitmap;
+
+	static HDC memBitMap;
+	static BITMAP bm;
+
 	switch (message)
 	{
+	case WM_CREATE:
+		hBitmap = LoadBitmap(hInst, MAKEINTRESOURCE(IDB_BITMAP1));
+		GetObject(hBitmap, sizeof(bm), &bm);
+		hdc = GetDC(hWnd);
+		memBitMap = CreateCompatibleDC(hdc);
+		SelectObject(memBitMap, hBitmap);
+		ReleaseDC(hWnd, hdc);
+		break;
+	case WM_PAINT:
+		hdc = BeginPaint(hWnd, &ps);
+		BitBlt(hdc, 0, 0, bm.bmWidth, bm.bmHeight, memBitMap, 0, 0, SRCCOPY);
+		EndPaint(hWnd, &ps);
+		break;
 	case WM_DESTROY: 
 		PostQuitMessage(0);
 		break;
