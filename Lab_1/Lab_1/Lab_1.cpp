@@ -12,8 +12,12 @@
 #define VK_S 0x53
 #define VK_D 0x44
 
+#define VK_Q 0x51
+#define VK_E 0x45
+
 constexpr auto WINDOW_NAME = "Lab_1";
 constexpr auto SPRITE_STEP = 10;
+constexpr auto SPRITE_DEGREE_ROTATE_STEP = 15;
 
 ATOM RegisterWindowClass(HINSTANCE);
 BOOL InitWindowInstance(HINSTANCE, int);
@@ -305,6 +309,14 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             spritePosition = CreateNewSpritePosition(spritePosition, CreateLeftSteps(), hWnd, sprite);
             PostUpdateSpriteMessage(hWnd);
             break;
+        case VK_Q:
+            angle -= SPRITE_DEGREE_ROTATE_STEP;
+            PostUpdateSpriteMessage(hWnd);
+            break;
+        case VK_E:
+            angle += SPRITE_DEGREE_ROTATE_STEP;
+            PostUpdateSpriteMessage(hWnd);
+            break;
         default:
             break;
         }
@@ -346,4 +358,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     default:
         return DefWindowProc(hWnd, message, wParam, lParam);
     }
+
+    return 0;
 }
