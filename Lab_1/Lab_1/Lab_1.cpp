@@ -7,7 +7,13 @@
 #define WM_UPDATE_SPRITE (WM_USER + 1)
 #define WM_LOAD_DEFAULT_SPRITE (WM_USER + 2)
 
+#define VK_W 0x57
+#define VK_A 0x41
+#define VK_S 0x53
+#define VK_D 0x44
+
 constexpr auto WINDOW_NAME = "Lab_1";
+constexpr auto SPRITE_STEP = 10;
 
 ATOM RegisterWindowClass(HINSTANCE);
 BOOL InitWindowInstance(HINSTANCE, int);
@@ -23,6 +29,18 @@ bool PostUpdateSpriteMessage(HWND hWnd)
     return PostMessage(hWnd, WM_UPDATE_SPRITE, NULL, NULL);
 }
 
+SIZE GetClientWindowSize(HWND hWnd)
+{
+    RECT windowRectangle;
+    GetClientRect(hWnd, &windowRectangle);
+
+    SIZE windowSize;
+    windowSize.cx = windowRectangle.right - windowRectangle.left;
+    windowSize.cy = windowRectangle.bottom - windowRectangle.top;
+
+    return windowSize;
+}
+
 SIZE GetSpriteSize(HBITMAP hBitmap)
 {
     BITMAP sprite;
@@ -33,6 +51,88 @@ SIZE GetSpriteSize(HBITMAP hBitmap)
     spriteSize.cy = sprite.bmHeight;
 
     return spriteSize;
+}
+
+int FillWindowWithColor(HWND hWnd, COLORREF color)
+{
+    RECT windowRectangle;
+    GetClientRect(hWnd, &windowRectangle);
+
+    HDC windowDC = GetDC(hWnd);
+    HBRUSH hBrush = CreateSolidBrush(color);
+
+    int result = FillRect(windowDC, &windowRectangle, hBrush);
+
+    DeleteObject(hBrush);
+    ReleaseDC(hWnd, windowDC);
+
+    return result;
+}
+
+COORD CreateNewSpritePosition(COORD spritePosition, COORD spriteSteps, HWND hWnd, HBITMAP sprite)
+{
+    SIZE windowSize = GetClientWindowSize(hWnd);
+    SIZE spriteSize = GetSpriteSize(sprite);
+
+    COORD newSpritePosition;
+
+    newSpritePosition.X = spritePosition.X + spriteSteps.X;
+    if (newSpritePosition.X < 0)
+    {
+        newSpritePosition.X = 0;
+    }
+    else if (newSpritePosition.X + spriteSize.cx > windowSize.cx)
+    {
+        newSpritePosition.X = (SHORT)(windowSize.cx - spriteSize.cx);
+    }
+
+    newSpritePosition.Y = spritePosition.Y + spriteSteps.Y;
+    if (newSpritePosition.Y < 0)
+    {
+        newSpritePosition.Y = 0;
+    }
+    else if (newSpritePosition.Y + spriteSize.cy > windowSize.cy)
+    {
+        newSpritePosition.Y = (SHORT)(windowSize.cy - spriteSize.cy);
+    }
+
+    return newSpritePosition;
+}
+
+COORD CreateUpSteps()
+{
+    COORD steps;
+    steps.X = 0;
+    steps.Y = -SPRITE_STEP;
+
+    return steps;
+}
+
+COORD CreateRightSteps()
+{
+    COORD steps;
+    steps.X = SPRITE_STEP;
+    steps.Y = 0;
+
+    return steps;
+}
+
+COORD CreateDownSteps()
+{
+    COORD steps;
+    steps.X = 0;
+    steps.Y = SPRITE_STEP;
+
+    return steps;
+}
+
+COORD CreateLeftSteps()
+{
+    COORD steps;
+    steps.X = -SPRITE_STEP;
+    steps.Y = 0;
+
+    return steps;
 }
 
 XFORM GetMovementXform(COORD coordinates)
@@ -137,7 +237,7 @@ ATOM RegisterWindowClass(HINSTANCE hInstance)
     windowClassEx.hInstance = hInstance;
     windowClassEx.hIcon = LoadIcon(0, IDI_WINLOGO);;
     windowClassEx.hCursor = LoadCursor(0, IDC_ARROW);
-    windowClassEx.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
+    windowClassEx.hbrBackground = (HBRUSH)(COLOR_WINDOW);
     windowClassEx.lpszMenuName = 0;
     windowClassEx.lpszClassName = WINDOW_NAME;
     windowClassEx.hIconSm = 0;
@@ -179,7 +279,35 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         }
         break;
     case WM_UPDATE_SPRITE:
+        FillWindowWithColor(hWnd, GetSysColor(COLOR_WINDOW));
         PutSpriteOnWindow(hWnd, sprite, spritePosition, angle);
+        break;
+    case WM_KEYDOWN:
+        switch (wParam)
+        {
+        case VK_UP:
+        case VK_W:
+            spritePosition = CreateNewSpritePosition(spritePosition, CreateUpSteps(), hWnd, sprite);
+            PostUpdateSpriteMessage(hWnd);
+            break;
+        case VK_RIGHT:
+        case VK_D:
+            spritePosition = CreateNewSpritePosition(spritePosition, CreateRightSteps(), hWnd, sprite);
+            PostUpdateSpriteMessage(hWnd);
+            break;
+        case VK_DOWN:
+        case VK_S:
+            spritePosition = CreateNewSpritePosition(spritePosition, CreateDownSteps(), hWnd, sprite);
+            PostUpdateSpriteMessage(hWnd);
+            break;
+        case VK_LEFT:
+        case VK_A:
+            spritePosition = CreateNewSpritePosition(spritePosition, CreateLeftSteps(), hWnd, sprite);
+            PostUpdateSpriteMessage(hWnd);
+            break;
+        default:
+            break;
+        }
         break;
     case WM_SIZE:
         PostUpdateSpriteMessage(hWnd);
