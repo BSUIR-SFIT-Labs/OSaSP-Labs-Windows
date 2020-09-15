@@ -309,6 +309,34 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             break;
         }
         break;
+    case WM_MOUSEWHEEL:
+        if (GET_KEYSTATE_WPARAM(wParam) == MK_SHIFT)
+        {
+            if (GET_WHEEL_DELTA_WPARAM(wParam) > 0)
+            {
+                spritePosition = CreateNewSpritePosition(spritePosition, CreateLeftSteps(), hWnd, sprite);
+                PostUpdateSpriteMessage(hWnd);
+            }
+            else
+            {
+                spritePosition = CreateNewSpritePosition(spritePosition, CreateRightSteps(), hWnd, sprite);
+                PostUpdateSpriteMessage(hWnd);
+            }
+        }
+        else
+        {
+            if (GET_WHEEL_DELTA_WPARAM(wParam) > 0)
+            {
+                spritePosition = CreateNewSpritePosition(spritePosition, CreateUpSteps(), hWnd, sprite);
+                PostUpdateSpriteMessage(hWnd);
+            }
+            else
+            {
+                spritePosition = CreateNewSpritePosition(spritePosition, CreateDownSteps(), hWnd, sprite);
+                PostUpdateSpriteMessage(hWnd);
+            }
+        }
+        break;
     case WM_SIZE:
         PostUpdateSpriteMessage(hWnd);
         return DefWindowProc(hWnd, message, wParam, lParam);
