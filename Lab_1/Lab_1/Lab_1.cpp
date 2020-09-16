@@ -9,19 +9,19 @@
 #define WM_UPDATE_SPRITE (WM_USER + 1)
 #define WM_LOAD_DEFAULT_SPRITE (WM_USER + 2)
 
-#define VK_W 0x57
-#define VK_A 0x41
-#define VK_S 0x53
-#define VK_D 0x44
-
-#define VK_Q 0x51
-#define VK_E 0x45
-
-#define VK_L 0x4c
-
 constexpr auto WINDOW_NAME = "Lab_1";
 constexpr auto SPRITE_STEP = 10;
 constexpr auto SPRITE_DEGREE_ROTATE_STEP = 15;
+
+constexpr auto VK_W = 0x57;
+constexpr auto VK_A = 0x41;
+constexpr auto VK_S = 0x53;
+constexpr auto VK_D = 0x44;
+
+constexpr auto VK_Q = 0x51;
+constexpr auto VK_E = 0x45;
+
+constexpr auto VK_L = 0x4c;
 
 ATOM RegisterWindowClass(HINSTANCE);
 BOOL InitWindowInstance(HINSTANCE, int);
@@ -432,6 +432,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             }
         }
         break;
+    case WM_ERASEBKGND:
+        return 1;
     case WM_SIZE:
         PostUpdateSpriteMessage(hWnd);
         return DefWindowProc(hWnd, message, wParam, lParam);
