@@ -1,9 +1,11 @@
 #include <Windows.h>
+#include<gdiplus.h>
+#include "resource.h"
+
 #define _USE_MATH_DEFINES 
 #include<cmath>
 
-#include "resource.h"
-
+#define WM_LOAD_SPRITE WM_USER
 #define WM_UPDATE_SPRITE (WM_USER + 1)
 #define WM_LOAD_DEFAULT_SPRITE (WM_USER + 2)
 
@@ -14,6 +16,8 @@
 
 #define VK_Q 0x51
 #define VK_E 0x45
+
+#define VK_L 0x4c
 
 constexpr auto WINDOW_NAME = "Lab_1";
 constexpr auto SPRITE_STEP = 10;
@@ -27,6 +31,12 @@ bool PostLoadDefaultSpriteMessage(HWND hWnd, HINSTANCE hInstance)
 {
     return PostMessage(hWnd, WM_LOAD_DEFAULT_SPRITE, NULL, (LPARAM)hInstance);
 }
+
+bool PostLoadSpriteMessage(HWND hWnd)
+{
+    return PostMessage(hWnd, WM_LOAD_SPRITE, NULL, NULL);
+}
+
 
 bool PostUpdateSpriteMessage(HWND hWnd)
 {
@@ -169,6 +179,58 @@ XFORM GetRotationXform(short degreeAngle)
     return xForm;
 }
 
+LRESULT LoadSprite(HWND hWnd, HBITMAP& sprite)
+{
+    char fileName[MAX_PATH] = { NULL };
+
+    OPENFILENAME openFileName;
+    openFileName.lStructSize = sizeof(OPENFILENAME);
+    openFileName.hwndOwner = hWnd;
+    openFileName.hInstance = NULL;
+    openFileName.lpstrFilter = "Images\0*.bmp;*.gif;*.jpeg;*.png;\0\0";
+    openFileName.lpstrCustomFilter = NULL;
+    openFileName.nFilterIndex = 1;
+    openFileName.lpstrFile = fileName;
+    openFileName.nMaxFile = sizeof(fileName);
+    openFileName.lpstrFileTitle = NULL;
+    openFileName.lpstrInitialDir = NULL;
+    openFileName.lpstrTitle = "Select sprite";
+    openFileName.Flags = OFN_FILEMUSTEXIST | OFN_PATHMUSTEXIST;
+    openFileName.lpstrDefExt = NULL;
+
+    if (GetOpenFileName(&openFileName))
+    {
+        int fileNameLength = MultiByteToWideChar(CP_ACP, 0, fileName, -1, NULL, 0);
+        WCHAR* wideCharFileName = new WCHAR[MultiByteToWideChar(CP_ACP, 0, fileName, -1, NULL, 0)];
+        MultiByteToWideChar(CP_ACP, 0, fileName, -1, wideCharFileName, fileNameLength);
+
+        Gdiplus::GdiplusStartupInput gdiplusStartupInput;
+        ULONG_PTR gdiplusToken;
+        GdiplusStartup(&gdiplusToken, &gdiplusStartupInput, NULL);
+
+        Gdiplus::Bitmap* sourceImage = Gdiplus::Bitmap::FromFile(wideCharFileName);
+        HBITMAP hBitmap;
+        Gdiplus::Color imageBackgroundColor;
+        imageBackgroundColor.SetFromCOLORREF(GetSysColor(COLOR_WINDOW));
+        Gdiplus::Status bitmapStatus = sourceImage->GetHBITMAP(imageBackgroundColor, &hBitmap);
+
+        Gdiplus::GdiplusShutdown(gdiplusToken);
+
+        if (bitmapStatus != Gdiplus::Ok)
+            return -1;
+
+        SIZE windowSize = GetClientWindowSize(hWnd), spriteSize = GetSpriteSize(hBitmap);
+        if ((windowSize.cx < spriteSize.cx) || (windowSize.cy < spriteSize.cy))
+            return -2;
+
+        sprite = hBitmap;
+
+        return 0;
+    }
+
+    return 1;
+}
+
 bool PutSpriteOnWindow(HWND hWnd, HBITMAP sprite, COORD coordinates, short angle)
 {
     HDC windowDC = GetDC(hWnd);
@@ -278,8 +340,26 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     {
     case WM_LOAD_DEFAULT_SPRITE:
         if ((sprite = LoadBitmap((HINSTANCE)lParam, MAKEINTRESOURCE(IDB_SPRITE))) != NULL)
-        {
             PostUpdateSpriteMessage(hWnd);
+        break;
+    case WM_LOAD_SPRITE:
+        switch (LoadSprite(hWnd, sprite))
+        {
+        case 0:
+            spritePosition = { 0, 0 };
+            angle = 0;
+            PostUpdateSpriteMessage(hWnd);
+            break;
+        case -1:
+            MessageBox(hWnd, "An unknown error occurred while loading the sprite.",
+                "Unknown error", MB_OK | MB_ICONERROR);
+            break;
+        case -2:
+            MessageBox(hWnd, "The sprite does not fit into the window.",
+                "Large sprite size", MB_OK | MB_ICONERROR);
+            break;
+        default:
+            break;
         }
         break;
     case WM_UPDATE_SPRITE:
@@ -316,6 +396,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         case VK_E:
             angle += SPRITE_DEGREE_ROTATE_STEP;
             PostUpdateSpriteMessage(hWnd);
+            break;
+        case VK_L:
+            PostLoadSpriteMessage(hWnd);
             break;
         default:
             break;
