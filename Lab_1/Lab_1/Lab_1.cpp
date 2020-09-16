@@ -93,21 +93,21 @@ COORD CreateNewSpritePosition(COORD spritePosition, COORD spriteSteps, HWND hWnd
     newSpritePosition.X = spritePosition.X + spriteSteps.X;
     if (newSpritePosition.X < 0)
     {
-        newSpritePosition.X = 0;
+        newSpritePosition.X = 0 + SPRITE_STEP + 90;
     }
     else if (newSpritePosition.X + spriteSize.cx > windowSize.cx)
     {
-        newSpritePosition.X = (SHORT)(windowSize.cx - spriteSize.cx);
+        newSpritePosition.X = (SHORT)(windowSize.cx - spriteSize.cx - SPRITE_STEP);
     }
 
     newSpritePosition.Y = spritePosition.Y + spriteSteps.Y;
     if (newSpritePosition.Y < 0)
     {
-        newSpritePosition.Y = 0;
+        newSpritePosition.Y = 0 + SPRITE_STEP;
     }
     else if (newSpritePosition.Y + spriteSize.cy > windowSize.cy)
     {
-        newSpritePosition.Y = (SHORT)(windowSize.cy - spriteSize.cy);
+        newSpritePosition.Y = (SHORT)(windowSize.cy - spriteSize.cy - SPRITE_STEP);
     }
 
     return newSpritePosition;
