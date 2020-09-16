@@ -93,7 +93,7 @@ COORD CreateNewSpritePosition(COORD spritePosition, COORD spriteSteps, HWND hWnd
     newSpritePosition.X = spritePosition.X + spriteSteps.X;
     if (newSpritePosition.X < 0)
     {
-        newSpritePosition.X = 0 + SPRITE_STEP + 90;
+        newSpritePosition.X = 0 + SPRITE_STEP;
     }
     else if (newSpritePosition.X + spriteSize.cx > windowSize.cx)
     {
