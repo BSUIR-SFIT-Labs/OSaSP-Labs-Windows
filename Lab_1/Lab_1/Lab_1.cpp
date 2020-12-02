@@ -1,42 +1,30 @@
-#include <Windows.h>
-#include<gdiplus.h>
+﻿#include <Windows.h>
 #include "resource.h"
 
-#define _USE_MATH_DEFINES 
-#include<cmath>
+#pragma comment(lib, "msimg32.lib")
 
-#define WM_LOAD_SPRITE WM_USER
-#define WM_UPDATE_SPRITE (WM_USER + 1)
-#define WM_LOAD_DEFAULT_SPRITE (WM_USER + 2)
+#define WM_UPDATE_SPRITE (WM_USER)
+#define WM_LOAD_DEFAULT_SPRITE (WM_USER + 1)
+#define BACKGROUND_COLOR COLOR_WINDOW
 
 constexpr auto WINDOW_NAME = "Lab_1";
 constexpr auto SPRITE_STEP = 10;
-constexpr auto SPRITE_DEGREE_ROTATE_STEP = 15;
 
 constexpr auto VK_W = 0x57;
 constexpr auto VK_A = 0x41;
 constexpr auto VK_S = 0x53;
 constexpr auto VK_D = 0x44;
 
-constexpr auto VK_Q = 0x51;
-constexpr auto VK_E = 0x45;
-
-constexpr auto VK_L = 0x4c;
-
 ATOM RegisterWindowClass(HINSTANCE);
 BOOL InitWindowInstance(HINSTANCE, int);
 LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);
+
+HINSTANCE _hInstance;
 
 bool PostLoadDefaultSpriteMessage(HWND hWnd, HINSTANCE hInstance)
 {
     return PostMessage(hWnd, WM_LOAD_DEFAULT_SPRITE, NULL, (LPARAM)hInstance);
 }
-
-bool PostLoadSpriteMessage(HWND hWnd)
-{
-    return PostMessage(hWnd, WM_LOAD_SPRITE, NULL, NULL);
-}
-
 
 bool PostUpdateSpriteMessage(HWND hWnd)
 {
@@ -149,89 +137,7 @@ COORD CreateLeftSteps()
     return steps;
 }
 
-XFORM GetMovementXform(COORD coordinates)
-{
-    XFORM xForm;
-    xForm.eM11 = 1;
-    xForm.eM12 = 0;
-    xForm.eM21 = 0;
-    xForm.eM22 = 1;
-    xForm.eDx = coordinates.X;
-    xForm.eDy = coordinates.Y;
-
-    return xForm;
-}
-
-XFORM GetRotationXform(short degreeAngle)
-{
-    XFORM xForm;
-    FLOAT radAngle = (FLOAT)(M_PI * degreeAngle / 180);
-    FLOAT angleSin = sin(radAngle);
-    FLOAT angleCos = cos(radAngle);
-
-    xForm.eM11 = angleCos;
-    xForm.eM12 = angleSin;
-    xForm.eM21 = -angleSin;
-    xForm.eM22 = angleCos;
-    xForm.eDx = 0;
-    xForm.eDy = 0;
-
-    return xForm;
-}
-
-LRESULT LoadSprite(HWND hWnd, HBITMAP& sprite)
-{
-    char fileName[MAX_PATH] = { NULL };
-
-    OPENFILENAME openFileName;
-    openFileName.lStructSize = sizeof(OPENFILENAME);
-    openFileName.hwndOwner = hWnd;
-    openFileName.hInstance = NULL;
-    openFileName.lpstrFilter = "Images\0*.bmp;*.gif;*.jpeg;*.png;\0\0";
-    openFileName.lpstrCustomFilter = NULL;
-    openFileName.nFilterIndex = 1;
-    openFileName.lpstrFile = fileName;
-    openFileName.nMaxFile = sizeof(fileName);
-    openFileName.lpstrFileTitle = NULL;
-    openFileName.lpstrInitialDir = NULL;
-    openFileName.lpstrTitle = "Select sprite";
-    openFileName.Flags = OFN_FILEMUSTEXIST | OFN_PATHMUSTEXIST;
-    openFileName.lpstrDefExt = NULL;
-
-    if (GetOpenFileName(&openFileName))
-    {
-        int fileNameLength = MultiByteToWideChar(CP_ACP, 0, fileName, -1, NULL, 0);
-        WCHAR* wideCharFileName = new WCHAR[MultiByteToWideChar(CP_ACP, 0, fileName, -1, NULL, 0)];
-        MultiByteToWideChar(CP_ACP, 0, fileName, -1, wideCharFileName, fileNameLength);
-
-        Gdiplus::GdiplusStartupInput gdiplusStartupInput;
-        ULONG_PTR gdiplusToken;
-        GdiplusStartup(&gdiplusToken, &gdiplusStartupInput, NULL);
-
-        Gdiplus::Bitmap* sourceImage = Gdiplus::Bitmap::FromFile(wideCharFileName);
-        HBITMAP hBitmap;
-        Gdiplus::Color imageBackgroundColor;
-        imageBackgroundColor.SetFromCOLORREF(GetSysColor(COLOR_WINDOW));
-        Gdiplus::Status bitmapStatus = sourceImage->GetHBITMAP(imageBackgroundColor, &hBitmap);
-
-        Gdiplus::GdiplusShutdown(gdiplusToken);
-
-        if (bitmapStatus != Gdiplus::Ok)
-            return -1;
-
-        SIZE windowSize = GetClientWindowSize(hWnd), spriteSize = GetSpriteSize(hBitmap);
-        if ((windowSize.cx < spriteSize.cx) || (windowSize.cy < spriteSize.cy))
-            return -2;
-
-        sprite = hBitmap;
-
-        return 0;
-    }
-
-    return 1;
-}
-
-bool PutSpriteOnWindow(HWND hWnd, HBITMAP sprite, COORD coordinates, short angle)
+bool PutSpriteOnWindow(HWND hWnd, HBITMAP sprite, COORD coordinates)
 {
     HDC windowDC = GetDC(hWnd);
     HDC spriteDC = CreateCompatibleDC(windowDC);
@@ -239,47 +145,31 @@ bool PutSpriteOnWindow(HWND hWnd, HBITMAP sprite, COORD coordinates, short angle
     HGDIOBJ oldObject = SelectObject(spriteDC, sprite);
     SIZE bitmapSize = GetSpriteSize(sprite);
 
-    XFORM xForm;
-    int graphicsMode = SetGraphicsMode(windowDC, GM_ADVANCED);
-
-    xForm = GetMovementXform(coordinates);
-    SetWorldTransform(windowDC, &xForm);
-
-    COORD transformationCenter;
-    transformationCenter.X = (SHORT)(-(coordinates.X + bitmapSize.cx / 2));
-    transformationCenter.Y = (SHORT)(-(coordinates.Y + bitmapSize.cy / 2));
-    xForm = GetMovementXform(transformationCenter);
-    ModifyWorldTransform(windowDC, &xForm, MWT_RIGHTMULTIPLY);
-
-    xForm = GetRotationXform(angle);
-    ModifyWorldTransform(windowDC, &xForm, MWT_RIGHTMULTIPLY);
-
-    transformationCenter.X = -transformationCenter.X;
-    transformationCenter.Y = -transformationCenter.Y;
-    xForm = GetMovementXform(transformationCenter);
-    ModifyWorldTransform(windowDC, &xForm, MWT_RIGHTMULTIPLY);
-
-    bool result = BitBlt(windowDC, 0, 0, bitmapSize.cx, bitmapSize.cy, spriteDC, 0, 0, SRCCOPY);
-    ModifyWorldTransform(windowDC, NULL, MWT_IDENTITY);
-    SetGraphicsMode(windowDC, graphicsMode);
-
-    SelectObject(spriteDC, oldObject);
+    bool result = TransparentBlt(windowDC, // дескриптор приемного DC
+        coordinates.X,                     // x-коорд. верхнего левого угла приемника
+        coordinates.Y,                     // y-коорд. верхнего левого угла приемника
+        bitmapSize.cx,                     // ширина приемного прямоугольника
+        bitmapSize.cy,                     // высота приемного прямоугольника
+        spriteDC,                          // дескриптор источника DC
+        0,                                 // x-коорд. верхнего левого угла источника
+        0,                                 // y-коорд. верхнего левого угла источника
+        bitmapSize.cx,                     // ширина источника прямоугольника
+        bitmapSize.cy,                     // высота источника прямоугольника
+        RGB(255, 255, 255));               // цвет который делается прозрачным
+   
     DeleteDC(spriteDC);
     ReleaseDC(hWnd, windowDC);
 
     return result;
 }
 
-int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPTSTR cmdLine, int cmdShowMode)
+int APIENTRY WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _In_ LPTSTR cmdLine, _In_ int showMode)
 {
-    UNREFERENCED_PARAMETER(hPrevInstance);
-    UNREFERENCED_PARAMETER(cmdLine);
-
     MSG msg;
 
     RegisterWindowClass(hInstance);
 
-    if (!InitWindowInstance(hInstance, cmdShowMode))
+    if (!InitWindowInstance(hInstance, showMode))
         return FALSE;
 
     while (GetMessage(&msg, NULL, 0, 0))
@@ -303,7 +193,7 @@ ATOM RegisterWindowClass(HINSTANCE hInstance)
     windowClassEx.hInstance = hInstance;
     windowClassEx.hIcon = LoadIcon(0, IDI_WINLOGO);;
     windowClassEx.hCursor = LoadCursor(0, IDC_ARROW);
-    windowClassEx.hbrBackground = (HBRUSH)(COLOR_WINDOW);
+    windowClassEx.hbrBackground = (HBRUSH)(BACKGROUND_COLOR);
     windowClassEx.lpszMenuName = 0;
     windowClassEx.lpszClassName = WINDOW_NAME;
     windowClassEx.hIconSm = 0;
@@ -311,22 +201,30 @@ ATOM RegisterWindowClass(HINSTANCE hInstance)
     return RegisterClassEx(&windowClassEx);
 }
 
-BOOL InitWindowInstance(HINSTANCE hInstance, int cmdShowMode)
+BOOL InitWindowInstance(HINSTANCE hInstance, int showMode)
 {
     HWND hWnd;
 
-    hWnd = CreateWindow(WINDOW_NAME, WINDOW_NAME, WS_OVERLAPPEDWINDOW, CW_USEDEFAULT,
-        CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, NULL, NULL, hInstance, NULL);
+    hWnd = CreateWindow(WINDOW_NAME,  // Указатель на зарегистрированное имя класса.
+        WINDOW_NAME,                  // Указатель на имя окна.
+        WS_OVERLAPPEDWINDOW,          // Стиль окна.
+        CW_USEDEFAULT,                // Горизонтальная позиция окна.
+        CW_USEDEFAULT,                // Вертикальная позиция окна.
+        CW_USEDEFAULT,                // Ширина окна.
+        CW_USEDEFAULT,                // Высота окна.
+        NULL,                         // Дескриптор родительского или окна владельца.
+        NULL,                         // Дескриптор меню или ID дочернего окна.
+        hInstance,                    // Дескриптор экземпляра приложения.
+        NULL);                        // Указатель на данные создания окна.
 
     if (!hWnd)
         return FALSE;
 
-    ShowWindow(hWnd, cmdShowMode);
-    UpdateWindow(hWnd);
+    ShowWindow(hWnd, showMode);
 
     // Load default sprite.
     PostLoadDefaultSpriteMessage(hWnd, hInstance);
-
+  
     return TRUE;
 }
 
@@ -334,7 +232,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
     static HBITMAP sprite = NULL;
     static COORD spritePosition = { 0, 0 };
-    static short angle = 0;
 
     switch (message)
     {
@@ -342,29 +239,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         if ((sprite = LoadBitmap((HINSTANCE)lParam, MAKEINTRESOURCE(IDB_SPRITE))) != NULL)
             PostUpdateSpriteMessage(hWnd);
         break;
-    case WM_LOAD_SPRITE:
-        switch (LoadSprite(hWnd, sprite))
-        {
-        case 0:
-            spritePosition = { 0, 0 };
-            angle = 0;
-            PostUpdateSpriteMessage(hWnd);
-            break;
-        case -1:
-            MessageBox(hWnd, "An unknown error occurred while loading the sprite.",
-                "Unknown error", MB_OK | MB_ICONERROR);
-            break;
-        case -2:
-            MessageBox(hWnd, "The sprite does not fit into the window.",
-                "Large sprite size", MB_OK | MB_ICONERROR);
-            break;
-        default:
-            break;
-        }
-        break;
     case WM_UPDATE_SPRITE:
-        FillWindowWithColor(hWnd, GetSysColor(COLOR_WINDOW));
-        PutSpriteOnWindow(hWnd, sprite, spritePosition, angle);
+        FillWindowWithColor(hWnd, GetSysColor(BACKGROUND_COLOR));
+        PutSpriteOnWindow(hWnd, sprite, spritePosition);
         break;
     case WM_KEYDOWN:
         switch (wParam)
@@ -388,17 +265,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         case VK_A:
             spritePosition = CreateNewSpritePosition(spritePosition, CreateLeftSteps(), hWnd, sprite);
             PostUpdateSpriteMessage(hWnd);
-            break;
-        case VK_Q:
-            angle -= SPRITE_DEGREE_ROTATE_STEP;
-            PostUpdateSpriteMessage(hWnd);
-            break;
-        case VK_E:
-            angle += SPRITE_DEGREE_ROTATE_STEP;
-            PostUpdateSpriteMessage(hWnd);
-            break;
-        case VK_L:
-            PostLoadSpriteMessage(hWnd);
             break;
         default:
             break;
@@ -432,8 +298,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             }
         }
         break;
-    case WM_ERASEBKGND:
-        return 1;
     case WM_SIZE:
         PostUpdateSpriteMessage(hWnd);
         return DefWindowProc(hWnd, message, wParam, lParam);
