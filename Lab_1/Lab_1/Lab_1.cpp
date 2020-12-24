@@ -5,7 +5,7 @@
 
 #define WM_UPDATE_SPRITE (WM_USER)
 #define WM_LOAD_DEFAULT_SPRITE (WM_USER + 1)
-#define BACKGROUND_COLOR COLOR_WINDOW
+#define BACKGROUND_COLOR COLOR_WINDOW + 21
 
 constexpr auto WINDOW_NAME = "Lab_1";
 constexpr auto SPRITE_STEP = 10;
@@ -18,8 +18,6 @@ constexpr auto VK_D = 0x44;
 ATOM RegisterWindowClass(HINSTANCE);
 BOOL InitWindowInstance(HINSTANCE, int);
 LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);
-
-HINSTANCE _hInstance;
 
 bool PostLoadDefaultSpriteMessage(HWND hWnd, HINSTANCE hInstance)
 {
