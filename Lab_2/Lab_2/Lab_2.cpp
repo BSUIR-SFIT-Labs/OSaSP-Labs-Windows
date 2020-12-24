@@ -53,7 +53,7 @@ void DrawTableWithText(HWND hWnd)
             int lengthOfDataItem = strlen(dataItem);
 
             SetRect(&rect, j * columnWidth + 1, tableHeight + 1, (j + 1) * columnWidth - 1, _userWindowHeight);
-            int strHeight = DrawTextA(hdc, dataItem, lengthOfDataItem, &rect, DT_WORDBREAK);
+            int strHeight = DrawText(hdc, dataItem, lengthOfDataItem, &rect, DT_WORDBREAK);
 
             if (strHeight > currentMaxColumnHeight)
                 currentMaxColumnHeight = strHeight;
@@ -72,6 +72,8 @@ void DrawTableWithText(HWND hWnd)
         MoveToEx(hdc, columnPosition, 0, NULL);
         LineTo(hdc, columnPosition, tableHeight);
     }
+
+    EndPaint(hWnd, &paintStruct);
 }
 
 int APIENTRY WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _In_ LPTSTR cmdLine, _In_ int cmdShowMode)
@@ -145,6 +147,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         break;
     case WM_DESTROY:
         PostQuitMessage(0);
+        return 0;
+    case WM_ERASEBKGND:
         return 0;
     default:
         return DefWindowProc(hWnd, message, wParam, lParam);
